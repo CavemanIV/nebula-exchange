@@ -15,6 +15,13 @@ object ErrorHandler {
   @transient
   private[this] val LOG = Logger.getLogger(this.getClass)
 
+  // get filesystem from path allows support fs schema rather always using default one in hdfs-site.xml
+  // FileSystem.get(new Configuration()) is a bad way to go
+  def getFileSystem(path: String): (Path, FileSystem) = {
+    val p = new Path(path)
+    (p, p.getFileSystem(new Configuration()))
+  }
+
   /**
     * clean all the failed data for error path before reload.
     *
@@ -22,8 +29,8 @@ object ErrorHandler {
     */
   def clear(path: String): Unit = {
     try {
-      val fileSystem  = FileSystem.get(new Configuration())
-      val filesStatus = fileSystem.listStatus(new Path(path))
+      val (p, fileSystem) = getFileSystem(path)
+      val filesStatus = fileSystem.listStatus(p)
       for (file <- filesStatus) {
         if (!file.getPath.getName.startsWith("reload.")) {
           fileSystem.delete(file.getPath, true)
@@ -46,8 +53,8 @@ object ErrorHandler {
     */
   def save(buffer: ArrayBuffer[String], path: String): Unit = {
     LOG.info(s"create reload path $path")
-    val fileSystem = FileSystem.get(new Configuration())
-    val errors     = fileSystem.create(new Path(path))
+    val (p, fileSystem) = getFileSystem(path)
+    val errors     = fileSystem.create(p)
 
     try {
       for (error <- buffer) {
@@ -66,7 +73,7 @@ object ErrorHandler {
     *@return true if path exists
     */
   def existError(path: String): Boolean = {
-    val fileSystem = FileSystem.get(new Configuration())
+    val (_, fileSystem) = getFileSystem(path)
     fileSystem.exists(new Path(path))
   }
 }
