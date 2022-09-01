@@ -46,8 +46,8 @@ object ErrorHandler {
     */
   def save(buffer: ArrayBuffer[String], path: String): Unit = {
     LOG.info(s"create reload path $path")
-    val fileSystem = FileSystem.get(new Configuration())
     val targetPath = new Path(path)
+    val fileSystem = targetPath.getFileSystem(new Configuration())
     val errors = if (fileSystem.exists(targetPath)) {
       // For kafka, the error ngql need to append to a same file instead of overwrite
       fileSystem.append(targetPath)
